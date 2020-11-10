@@ -17,32 +17,38 @@ library(rio)
 getwd()
 setwd("C:\\Users\\User\\Documents")
 
-#ATUALIZAR DATA (alinhar com primeiro mes dos dados)
-datainicial="01/03/2011"
-datafinal=format(Sys.time(), "%d/%m/%Y")
+#Criando função para coleta de séries
+coleta_dados_sgs = function(series,datainicial="01/03/2011", datafinal = format(Sys.time(), "%d/%m/%Y")){
+  #Argumentos: vetor de séries, datainicial que pode ser manualmente alterada e datafinal que automaticamente usa a data de hoje
+  #Cria estrutura de repetição para percorrer vetor com códigos de séries e depois juntar todas em um único dataframe
+  for (i in 1:length(series)){
+    dados = read.csv(url(paste("http://api.bcb.gov.br/dados/serie/bcdata.sgs.",series[i],"/dados?formato=csv&dataInicial=",datainicial,"&dataFinal=",datafinal,sep="")),sep=";")
+    dados[,-1] = as.numeric(gsub(",",".",dados[,-1])) #As colunas do dataframe em objetos numéricos exceto a da data
+    nome_coluna = series[i] #Nomeia cada coluna do dataframe com o código da série
+    colnames(dados) = c('data', nome_coluna)
+    nome_arquivo = paste("dados", i, sep = "") #Nomeia os vários arquivos intermediários que são criados com cada série
+    assign(nome_arquivo, dados)
+    
+    if(i==1)
+      base = dados1 #Primeira repetição cria o dataframe
+    else
+      base = merge(base, dados, by = "data", all = T) #Demais repetições agregam colunas ao dataframe criado
+    print(paste(i, length(series), sep = '/')) #Printa o progresso da repetição
+  }
+  
+  base$data = as.Date(base$data, "%d/%m/%Y") #Transforma coluna de data no formato de data
+  base = base[order(base$data),] #Ordena o dataframe de acordo com a data
+  return(base)
+}
 
 #1)Todas as séries
 #cada categoria em uma linha diferente
-serie=c(20631, 20632, 20633,
+series=c(20631, 20632, 20633,
         20634, 20635, 28163, 28164, 20636, 20637, 20638, 20639, 20640, 20641, 20642, 20643, 20644, 20645, 20646, 20647, 20648, 20649, 20650, 20651, 20652, 20653, 20654, 20655, 20656, 20657, 20658, 20659, 20660, 20661, 20662, 20663, 20664, 20665, 20666, 20667, 20668, 20669, 20670, 20671, 20672, 20673, 20674, 20675, 20676, 20677, 20678, 20679, 20680, 20681, 20682, 20683, 20684,
         20685, 20686, 20687, 20688, 20689, 20690, 20691, 20692, 20693, 20694, 20695, 20696, 20697, 20698, 20699, 20700, 20701, 20702, 20703, 20704, 20705, 20706, 20707, 20708, 20709, 20710, 20712, 20713)
 
 
-for (i in 1:length(serie)){
-  dados = read.csv(url(paste("http://api.bcb.gov.br/dados/serie/bcdata.sgs.",serie[i],"/dados?formato=csv&dataInicial=",datainicial,"&dataFinal=",datafinal,sep="")),sep=";")
-  dados$data = as.Date(dados$data, "%d/%m/%Y")
-  nome = paste("serie", i, sep = "")
-  assign(nome, dados)
-  if(i==1)
-    base1 = serie1
-  else
-    base1 = merge(base1, dados, by = "data", all = T)
-}
-
-rm(dados)
-rm(list=objects(pattern="^serie"))
-
-base1[,-1]=apply(base1[,-1],2,function(x)as.numeric(gsub("\\.","",x)))
+base1 <- coleta_dados_sgs(series)
 
 names(base1)=c("Data","Concessões - Total", "Concessões - Pessoas jurídicas - Total", "Concessões - Pessoas físicas - Total", 
                "Concessões - Total - Recursos livres", "Concessões - Pessoas jurídicas - Total - Recursos livres", "Concessões - Pessoas jurídicas - Não rotativo - Recursos livres", "Concessões - Pessoas jurídicas - Rotativo - Recursos livres", "Concessões - Pessoas jurídicas - Desconto de duplicatas e recebíveis - Recursos livres", "Concessões - Pessoas jurídicas - Desconto de cheques - Recursos livres", "Concessões - Pessoas jurídicas - Antecipação de faturas de cartão de crédito - Recursos livres", "Concessões - Pessoas jurídicas - Capital de giro com prazo de até 365 dias - Recursos livres", "Concessões - Pessoas jurídicas - Capital de giro com prazo superior a 365 dias - Recursos livres", "Concessões - Pessoas jurídicas - Capital de giro rotativo - Recursos livres", "Concessões - Pessoas jurídicas - Capital de giro total - Recursos livres", "Concessões - Pessoas jurídicas - Conta garantida - Recursos livres", "Concessões - Pessoas jurídicas - Cheque especial - Recursos livres", "Concessões - Pessoas jurídicas - Aquisição de veículos - Recursos livres", "Concessões - Pessoas jurídicas - Aquisição de outros bens - Recursos livres", "Concessões - Pessoas jurídicas - Aquisição de bens total - Recursos livres", "Concessões - Pessoas jurídicas - Arrendamento mercantil de veículos - Recursos livres", "Concessões - Pessoas jurídicas - Arrendamento mercantil de outros bens - Recursos livres", "Concessões - Pessoas jurídicas - Arrendamento mercantil total - Recursos livres", "Concessões - Pessoas jurídicas - Vendor - Recursos livres", "Concessões - Pessoas jurídicas - Compror - Recursos livres", "Concessões - Pessoas jurídicas - Cartão de crédito rotativo - Recursos livres", "Concessões - Pessoas jurídicas - Cartão de crédito parcelado - Recursos livres", "Concessões - Pessoas jurídicas - Cartão de crédito à vista - Recursos livres",
